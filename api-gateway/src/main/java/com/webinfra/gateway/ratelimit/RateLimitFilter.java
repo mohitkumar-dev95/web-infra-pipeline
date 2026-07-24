@@ -17,9 +17,11 @@ import java.io.IOException;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final TokenBucketRateLimiter rateLimiter;
+    private final com.webinfra.gateway.metrics.MetricsService metricsService;
 
-    public RateLimitFilter(TokenBucketRateLimiter rateLimiter) {
+    public RateLimitFilter(TokenBucketRateLimiter rateLimiter, com.webinfra.gateway.metrics.MetricsService metricsService) {
         this.rateLimiter = rateLimiter;
+        this.metricsService = metricsService;
     }
 
     @Override
@@ -44,12 +46,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setHeader("X-RateLimit-Reset", String.valueOf(resetSeconds));
 
         if (!result.isAllowed()) {
+            metricsService.recordRateLimitBlocked();
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write("{\"error\": \"Too Many Requests\", \"message\": \"Rate limit exceeded. Try again later.\"}");
             return;
         }
 
+        metricsService.recordRateLimitAllowed();
         filterChain.doFilter(request, response);
     }
 

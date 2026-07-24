@@ -29,6 +29,12 @@ public class CdnCacheService {
     private final AtomicLong hitCount = new AtomicLong(0);
     private final AtomicLong missCount = new AtomicLong(0);
 
+    private final com.webinfra.gateway.metrics.MetricsService metricsService;
+
+    public CdnCacheService(com.webinfra.gateway.metrics.MetricsService metricsService) {
+        this.metricsService = metricsService;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -43,14 +49,17 @@ public class CdnCacheService {
             if (cached.isExpired()) {
                 cacheMap.remove(key);
                 missCount.incrementAndGet();
+                metricsService.recordCacheMiss();
                 return null;
             }
             hitCount.incrementAndGet();
+            metricsService.recordCacheHit();
             log.info("CDN CACHE HIT for key: [{}]", key);
             return cached;
         }
 
         missCount.incrementAndGet();
+        metricsService.recordCacheMiss();
         log.info("CDN CACHE MISS for key: [{}]", key);
         return null;
     }

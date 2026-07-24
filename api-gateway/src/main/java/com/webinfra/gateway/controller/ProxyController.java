@@ -23,16 +23,21 @@ public class ProxyController {
     private final BackendPool backendPool;
     private final LoadBalancingStrategy loadBalancingStrategy;
     private final RestTemplate restTemplate;
+    private final com.webinfra.gateway.metrics.MetricsService metricsService;
 
-    public ProxyController(BackendPool backendPool, LoadBalancingStrategy loadBalancingStrategy) {
+    public ProxyController(BackendPool backendPool,
+                           LoadBalancingStrategy loadBalancingStrategy,
+                           com.webinfra.gateway.metrics.MetricsService metricsService) {
         this.backendPool = backendPool;
         this.loadBalancingStrategy = loadBalancingStrategy;
+        this.metricsService = metricsService;
         this.restTemplate = new RestTemplate();
     }
 
     @RequestMapping("/api/**")
     public ResponseEntity<byte[]> proxyRequest(HttpServletRequest request, @RequestBody(required = false) byte[] body) {
         String backendUrl = loadBalancingStrategy.getNextBackend(backendPool.getHealthyBackends());
+        metricsService.recordBackendRouting(backendUrl);
         String targetUri = backendUrl + request.getRequestURI();
         if (request.getQueryString() != null) {
             targetUri += "?" + request.getQueryString();
