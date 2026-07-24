@@ -32,7 +32,7 @@ public class ProxyController {
 
     @RequestMapping("/api/**")
     public ResponseEntity<byte[]> proxyRequest(HttpServletRequest request, @RequestBody(required = false) byte[] body) {
-        String backendUrl = loadBalancingStrategy.getNextBackend(backendPool.getBackends());
+        String backendUrl = loadBalancingStrategy.getNextBackend(backendPool.getHealthyBackends());
         String targetUri = backendUrl + request.getRequestURI();
         if (request.getQueryString() != null) {
             targetUri += "?" + request.getQueryString();
